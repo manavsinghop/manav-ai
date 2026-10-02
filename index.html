@@ -806,7 +806,7 @@
         <h2 class="dialog-title" id="settings-dialog-title">Settings</h2>
       </div>
       <p class="dialog-body">
-        Manav AI is currently running in client preview mode. Backend Google Gemini API integration hooks are configured and ready for connection via a secure Netlify Function.
+        Manav AI is connected to Google Gemini through a secure Netlify Function. Your Gemini API key is kept on the server and is not exposed in this page.
       </p>
       <div class="dialog-actions">
         <button id="btn-close-settings" class="base-button button-primary" type="button">Close</button>
@@ -998,43 +998,28 @@
 
     /**
      * AI SERVICE INTEGRATION LAYER
-     * 
-     * NOTE FOR PRODUCTION / NETLIFY FUNCTION:
-     * When connecting to Google Gemini, replace the mock logic below with:
-     * 
-     * async function callGeminiAPI(userPrompt, conversationHistory) {
-     *   const res = await fetch('/.netlify/functions/gemini-chat', {
-     *     method: 'POST',
-     *     headers: { 'Content-Type': 'application/json' },
-     *     body: JSON.stringify({ prompt: userPrompt, history: conversationHistory })
-     *   });
-     *   const data = await res.json();
-     *   return data.reply;
-     * }
+     *
+     * Calls the secure Netlify Function.
+     * The Gemini API key stays on the server and is never exposed here.
      */
     async function generateAIResponse(userText) {
-      // Simulated response delay
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      const response = await fetch('/.netlify/functions/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: userText
+        })
+      });
 
-      const lower = userText.toLowerCase();
+      const data = await response.json();
 
-      if (lower.includes('quantum')) {
-        return "Quantum computers harness quantum mechanics principles such as superposition and entanglement. Unlike classical bits that represent either 0 or 1, qubits can exist in multi-state probabilities simultaneously, enabling rapid solutions to specific combinatorial and scientific problems.";
-      }
-      
-      if (lower.includes('study') || lower.includes('roadmap') || lower.includes('javascript')) {
-        return "Here is a structured study roadmap for JavaScript:\n\n1. Foundations: Variables (let/const), data types, operators, and control flow.\n2. Functions & Scope: Arrow functions, closures, and lexical scoping.\n3. DOM & Events: Event listeners, delegation, and dynamic DOM updates.\n4. Asynchronous JS: Promises, async/await, and Fetch API communication.\n5. Practical Applications: Build functional apps like a task manager or API dashboard.";
-      }
-
-      if (lower.includes('interview') || lower.includes('email')) {
-        return "Subject: Thank you - [Your Name] Follow-up\n\nDear [Interviewer Name],\n\nThank you for the opportunity to discuss the [Job Title] position today. I appreciated learning more about the team's ongoing initiatives.\n\nOur conversation confirmed my interest in joining the team. Please let me know if you need any additional materials from my side.\n\nBest regards,\n[Your Name]";
-      }
-
-      if (lower.includes('leak') || lower.includes('problem')) {
-        return "To isolate and resolve web memory leaks:\n\n1. Inspect heap allocations using Chrome DevTools Memory tab.\n2. Check for uncleared setInterval timers or event listeners on detached DOM elements.\n3. Ensure global variable leaks and circular references in closures are bounded.\n4. Re-profile to verify garbage collection stabilizes after component unmounts.";
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get a response from Manav AI.');
       }
 
-      return `Thank you for your message. As Manav AI, I am ready to help you analyze topics, generate clear content, write code, or solve technical problems. What would you like to explore next?`;
+      return data.reply || 'I could not generate a response.';
     }
 
     // Process message submission
